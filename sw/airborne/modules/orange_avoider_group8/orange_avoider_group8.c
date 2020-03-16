@@ -50,13 +50,14 @@ struct image_t* colorfilter(struct image_t *input, struct image_t *output, int Y
     for(int y = 0; y < input->h; ++y){
         for(int x = 0; x < input->w; ++x){
 
+            // Check if x,y in image
             if (x < 0 || x >= input->w || y < 0 || y >= input->h) continue;
 
             if (check_color_yuv422(input, x, y, Y_min, Y_max, U_min, U_max, V_min, V_max)){
-                set_color_yuv422(output, x, y, 255, 128, 128);
+                set_color_yuv422(output, x, y, 255, 128, 128);  // If pixel within bounds, make it white
             }
             else{
-                set_color_yuv422(output, x, y, 0, 128, 128);
+                set_color_yuv422(output, x, y, 0, 128, 128);    // Else make it black
             }
         }
     }
