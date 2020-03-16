@@ -22,6 +22,8 @@
 #include "generated/airframe.h"
 #include "state.h"
 #include "subsystems/abi.h"
+#include "modules/computer_vision/lib/vision/image.h"
+
 #include <time.h>
 #include <stdio.h>
 
@@ -42,11 +44,31 @@ uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 uint8_t increase_nav_heading(float incrementDegrees);
 uint8_t chooseRandomIncrementAvoidance(void);
 
+struct image_t* colorfilter(struct image_t *input, struct image_t *output, int Y_min, int Y_max, int U_min, int U_max, int V_min, int V_max);
+struct image_t* colorfilter(struct image_t *input, struct image_t *output, int Y_min, int Y_max, int U_min, int U_max, int V_min, int V_max){
+
+    for(int y = 0; y < input->h; ++y){
+        for(int x = 0; x < input->w; ++x){
+
+            if (x < 0 || x >= input->w || y < 0 || y >= input->h) continue;
+
+            if (check_color_yuv422(input, x, y, Y_min, Y_max, U_min, U_max, V_min, V_max)){
+                set_color_yuv422(output, x, y, 255, 128, 128);
+            }
+            else{
+                set_color_yuv422(output, x, y, 0, 128, 128);
+            }
+        }
+    }
+
+    return output;
+}
+
 enum navigation_state_t {
-  SAFE,
-  OBSTACLE_FOUND,
-  SEARCH_FOR_SAFE_HEADING,
-  OUT_OF_BOUNDS
+    SAFE,
+    OBSTACLE_FOUND,
+    SEARCH_FOR_SAFE_HEADING,
+    OUT_OF_BOUNDS
 };
 
 // define settings
@@ -54,7 +76,7 @@ float oa_color_count_frac = 0.18f;
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
-int32_t color_count = 0;                // orange color count from color filter for obstacle detection
+int32_t color_count = 0;               // orange color count from color filter for obstacle detection
 int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
 float heading_increment = 5.f;          // heading angle increment [deg]
 float maxDistance = 2.25;               // max waypoint displacement [m]
@@ -70,7 +92,7 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int16_t __attribute__((unused)) pixel_width, int16_t __attribute__((unused)) pixel_height,
                                int32_t quality, int16_t __attribute__((unused)) extra)
 {
-  color_count = quality;
+    color_count = quality;
 }
 
 /*
@@ -78,12 +100,12 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
  */
 void orange_avoider_init(void)
 {
-  // Initialise random values
-  srand(time(NULL));
-  chooseRandomIncrementAvoidance();
+    // Initialise random values
+    srand(time(NULL));
+    chooseRandomIncrementAvoidance();
 
-  // bind our colorfilter callbacks to receive the color filter outputs
-  AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+    // bind our colorfilter callbacks to receive the color filter outputs
+    AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
 }
 
 /*
@@ -91,79 +113,79 @@ void orange_avoider_init(void)
  */
 void orange_avoider_periodic(void)
 {
-  // only evaluate our state machine if we are flying
-  if(!autopilot_in_flight()){
+    // only evaluate our state machine if we are flying
+    if(!autopilot_in_flight()){
+        return;
+    }
+
+    // compute current color thresholds
+    int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
+
+    VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count, navigation_state);
+
+    // update our safe confidence using color threshold
+    if(color_count < color_count_threshold){
+        obstacle_free_confidence++;
+    } else {
+        obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
+    }
+
+    // bound obstacle_free_confidence
+    Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
+
+    float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
+
+    switch (navigation_state){
+        case SAFE:
+            // Move waypoint forward
+            moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
+            if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
+                navigation_state = OUT_OF_BOUNDS;
+            } else if (obstacle_free_confidence == 0){
+                navigation_state = OBSTACLE_FOUND;
+            } else {
+                moveWaypointForward(WP_GOAL, moveDistance);
+            }
+
+            break;
+        case OBSTACLE_FOUND:
+            // stop
+            waypoint_move_here_2d(WP_GOAL);
+            waypoint_move_here_2d(WP_TRAJECTORY);
+
+            // randomly select new search direction
+            chooseRandomIncrementAvoidance();
+
+            navigation_state = SEARCH_FOR_SAFE_HEADING;
+
+            break;
+        case SEARCH_FOR_SAFE_HEADING:
+            increase_nav_heading(heading_increment);
+
+            // make sure we have a couple of good readings before declaring the way safe
+            if (obstacle_free_confidence >= 2){
+                navigation_state = SAFE;
+            }
+            break;
+        case OUT_OF_BOUNDS:
+            increase_nav_heading(heading_increment);
+            moveWaypointForward(WP_TRAJECTORY, 1.5f);
+
+            if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
+                // add offset to head back into arena
+                increase_nav_heading(heading_increment);
+
+                // reset safe counter
+                obstacle_free_confidence = 0;
+
+                // ensure direction is safe before continuing
+                navigation_state = SEARCH_FOR_SAFE_HEADING;
+            }
+            break;
+        default:
+            break;
+    }
     return;
-  }
-
-  // compute current color thresholds
-  int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
-
-  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count, navigation_state);
-
-  // update our safe confidence using color threshold
-  if(color_count < color_count_threshold){
-    obstacle_free_confidence++;
-  } else {
-    obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
-  }
-
-  // bound obstacle_free_confidence
-  Bound(obstacle_free_confidence, 0, max_trajectory_confidence);
-
-  float moveDistance = fminf(maxDistance, 0.2f * obstacle_free_confidence);
-
-  switch (navigation_state){
-    case SAFE:
-      // Move waypoint forward
-      moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
-      if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-        navigation_state = OUT_OF_BOUNDS;
-      } else if (obstacle_free_confidence == 0){
-        navigation_state = OBSTACLE_FOUND;
-      } else {
-        moveWaypointForward(WP_GOAL, moveDistance);
-      }
-
-      break;
-    case OBSTACLE_FOUND:
-      // stop
-      waypoint_move_here_2d(WP_GOAL);
-      waypoint_move_here_2d(WP_TRAJECTORY);
-
-      // randomly select new search direction
-      chooseRandomIncrementAvoidance();
-
-      navigation_state = SEARCH_FOR_SAFE_HEADING;
-
-      break;
-    case SEARCH_FOR_SAFE_HEADING:
-      increase_nav_heading(heading_increment);
-
-      // make sure we have a couple of good readings before declaring the way safe
-      if (obstacle_free_confidence >= 2){
-        navigation_state = SAFE;
-      }
-      break;
-    case OUT_OF_BOUNDS:
-      increase_nav_heading(heading_increment);
-      moveWaypointForward(WP_TRAJECTORY, 1.5f);
-
-      if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-        // add offset to head back into arena
-        increase_nav_heading(heading_increment);
-
-        // reset safe counter
-        obstacle_free_confidence = 0;
-
-        // ensure direction is safe before continuing
-        navigation_state = SEARCH_FOR_SAFE_HEADING;
-      }
-      break;
-    default:
-      break;
-  }
-  return;
 }
 
 /*
@@ -171,16 +193,16 @@ void orange_avoider_periodic(void)
  */
 uint8_t increase_nav_heading(float incrementDegrees)
 {
-  float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(incrementDegrees);
+    float new_heading = stateGetNedToBodyEulers_f()->psi + RadOfDeg(incrementDegrees);
 
-  // normalize heading to [-pi, pi]
-  FLOAT_ANGLE_NORMALIZE(new_heading);
+    // normalize heading to [-pi, pi]
+    FLOAT_ANGLE_NORMALIZE(new_heading);
 
-  // set heading
-  nav_heading = ANGLE_BFP_OF_REAL(new_heading);
+    // set heading
+    nav_heading = ANGLE_BFP_OF_REAL(new_heading);
 
-  VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
-  return false;
+    VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
+    return false;
 }
 
 /*
@@ -188,15 +210,15 @@ uint8_t increase_nav_heading(float incrementDegrees)
  */
 static uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
 {
-  float heading  = stateGetNedToBodyEulers_f()->psi;
+    float heading  = stateGetNedToBodyEulers_f()->psi;
 
-  // Now determine where to place the waypoint you want to go to
-  new_coor->x = stateGetPositionEnu_i()->x + POS_BFP_OF_REAL(sinf(heading) * (distanceMeters));
-  new_coor->y = stateGetPositionEnu_i()->y + POS_BFP_OF_REAL(cosf(heading) * (distanceMeters));
-  VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,	
-                POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
-                stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
-  return false;
+    // Now determine where to place the waypoint you want to go to
+    new_coor->x = stateGetPositionEnu_i()->x + POS_BFP_OF_REAL(sinf(heading) * (distanceMeters));
+    new_coor->y = stateGetPositionEnu_i()->y + POS_BFP_OF_REAL(cosf(heading) * (distanceMeters));
+    VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,
+                  POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
+                  stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
+    return false;
 }
 
 /*
@@ -204,10 +226,10 @@ static uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeter
  */
 uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor)
 {
-  VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
-                POS_FLOAT_OF_BFP(new_coor->y));
-  waypoint_move_xy_i(waypoint, new_coor->x, new_coor->y);
-  return false;
+    VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
+                  POS_FLOAT_OF_BFP(new_coor->y));
+    waypoint_move_xy_i(waypoint, new_coor->x, new_coor->y);
+    return false;
 }
 
 /*
@@ -215,10 +237,10 @@ uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor)
  */
 uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters)
 {
-  struct EnuCoor_i new_coor;
-  calculateForwards(&new_coor, distanceMeters);
-  moveWaypoint(waypoint, &new_coor);
-  return false;
+    struct EnuCoor_i new_coor;
+    calculateForwards(&new_coor, distanceMeters);
+    moveWaypoint(waypoint, &new_coor);
+    return false;
 }
 
 /*
@@ -226,14 +248,13 @@ uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters)
  */
 uint8_t chooseRandomIncrementAvoidance(void)
 {
-  // Randomly choose CW or CCW avoiding direction
-  if (rand() % 2 == 0) {
-    heading_increment = 5.f;
-    VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
-  } else {
-    heading_increment = -5.f;
-    VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
-  }
-  return false;
+    // Randomly choose CW or CCW avoiding direction
+    if (rand() % 2 == 0) {
+        heading_increment = 5.f;
+        VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
+    } else {
+        heading_increment = -5.f;
+        VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
+    }
+    return false;
 }
-
