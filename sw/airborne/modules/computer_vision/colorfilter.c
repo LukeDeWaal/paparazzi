@@ -43,27 +43,46 @@ PRINT_CONFIG_VAR(COLORFILTER_SEND_OBSTACLE)
 struct video_listener *listener = NULL;
 
 // Filter Settings
-uint8_t color_lum_min = 105;
-uint8_t color_lum_max = 205;
-uint8_t color_cb_min  = 52;
-uint8_t color_cb_max  = 140;
-uint8_t color_cr_min  = 180;
-uint8_t color_cr_max  = 255;
+uint8_t color_lum_min = 50;
+uint8_t color_lum_max = 200;
+uint8_t color_cb_min  = 120;
+uint8_t color_cb_max  = 130;
+uint8_t color_cr_min  = 120;
+uint8_t color_cr_max  = 130;
 
 // Result
 volatile int color_count = 0;
 
 #include "subsystems/abi.h"
 
+static void colorfilter_fuckit(struct image_t *input, struct image_t *output, int Y_min, int Y_max, int U_min, int U_max, int V_min, int V_max){
+
+    for(int y = (int)(input->h/2); y < input->h; ++y){ // Just bottom Half of picture
+        for(int x = (int)(input->w/4); x < (int)3*input->w/4; ++x){ // Just Central part of picture
+            printf("\n x,y = (%d, %d) \n", x, y);
+            // Check if x,y in image
+            if (x < 0 || x >= input->w || y < 0 || y >= input->h) continue;
+
+            if (check_color_yuv422(input, x, y, Y_min, Y_max, U_min, U_max, V_min, V_max)){
+                set_color_yuv422(output, x, y, 255, 128, 128);  // If pixel within bounds, make it white
+                color_count++;
+            }
+            else{
+                set_color_yuv422(output, x, y, 0, 128, 128);    // Else make it black
+            }
+        }
+    }
+}
+
 // Function
 static struct image_t *colorfilter_func(struct image_t *img)
 {
   // Filter
-  color_count = image_yuv422_colorfilt(img, img,
-                                       color_lum_min, color_lum_max,
-                                       color_cb_min, color_cb_max,
-                                       color_cr_min, color_cr_max
-                                      );
+    colorfilter_fuckit(img, img,
+                color_lum_min, color_lum_max,
+                color_cb_min,  color_cb_max,
+                color_cr_min,  color_cr_max
+                );
 
   if (COLORFILTER_SEND_OBSTACLE) {
     if (color_count > 20)

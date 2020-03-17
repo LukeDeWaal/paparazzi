@@ -31,6 +31,7 @@
 
 // Module functions
 extern void colorfilter_init(void);
+struct image_t* colorfilter(struct image_t *input, struct image_t *output, int Y_min, int Y_max, int U_min, int U_max, int V_min, int V_max);
 
 extern uint8_t color_lum_min;
 extern uint8_t color_lum_max;

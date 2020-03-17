@@ -44,27 +44,6 @@ uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 uint8_t increase_nav_heading(float incrementDegrees);
 uint8_t chooseRandomIncrementAvoidance(void);
 
-struct image_t* colorfilter(struct image_t *input, struct image_t *output, int Y_min, int Y_max, int U_min, int U_max, int V_min, int V_max);
-struct image_t* colorfilter(struct image_t *input, struct image_t *output, int Y_min, int Y_max, int U_min, int U_max, int V_min, int V_max){
-
-    for(int y = 0; y < input->h; ++y){
-        for(int x = 0; x < input->w; ++x){
-
-            // Check if x,y in image
-            if (x < 0 || x >= input->w || y < 0 || y >= input->h) continue;
-
-            if (check_color_yuv422(input, x, y, Y_min, Y_max, U_min, U_max, V_min, V_max)){
-                set_color_yuv422(output, x, y, 255, 128, 128);  // If pixel within bounds, make it white
-            }
-            else{
-                set_color_yuv422(output, x, y, 0, 128, 128);    // Else make it black
-            }
-        }
-    }
-
-    return output;
-}
-
 enum navigation_state_t {
     SAFE,
     OBSTACLE_FOUND,
@@ -94,6 +73,7 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int32_t quality, int16_t __attribute__((unused)) extra)
 {
     color_count = quality;
+    VERBOSE_PRINT("FUCKING Color_count: %d \n", color_count);
 }
 
 /*
@@ -120,12 +100,12 @@ void orange_avoider_periodic(void)
     }
 
     // compute current color thresholds
-    int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
+    int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w / 2 * front_camera.output_size.h / 2;
 
     VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count, navigation_state);
 
     // update our safe confidence using color threshold
-    if(color_count < color_count_threshold){
+    if(color_count > color_count_threshold){
         obstacle_free_confidence++;
     } else {
         obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
@@ -169,20 +149,21 @@ void orange_avoider_periodic(void)
             }
             break;
         case OUT_OF_BOUNDS:
-            increase_nav_heading(heading_increment);
-            moveWaypointForward(WP_TRAJECTORY, 1.5f);
-
-            if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-                // add offset to head back into arena
-                increase_nav_heading(heading_increment);
-
-                // reset safe counter
-                obstacle_free_confidence = 0;
-
-                // ensure direction is safe before continuing
-                navigation_state = SEARCH_FOR_SAFE_HEADING;
-            }
-            break;
+            navigation_state = SEARCH_FOR_SAFE_HEADING;
+//            increase_nav_heading(heading_increment);
+//            moveWaypointForward(WP_TRAJECTORY, 1.5f);
+//
+//            if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
+//                // add offset to head back into arena
+//                increase_nav_heading(heading_increment);
+//
+//                // reset safe counter
+//                obstacle_free_confidence = 0;
+//
+//                // ensure direction is safe before continuing
+//                navigation_state = SEARCH_FOR_SAFE_HEADING;
+//            }
+//            break;
         default:
             break;
     }
