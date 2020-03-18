@@ -55,7 +55,7 @@ volatile int color_count = 0;
 
 #include "subsystems/abi.h"
 
-static void colorfilter_fuckit(struct image_t *input, struct image_t *output, int Y_min, int Y_max, int U_min, int U_max, int V_min, int V_max){
+static void colorfilter(struct image_t *input, struct image_t *output, int Y_min, int Y_max, int U_min, int U_max, int V_min, int V_max){
 
     for(int y = (int)(input->h/2); y < input->h; ++y){ // Just bottom Half of picture
         for(int x = (int)(input->w/4); x < (int)3*input->w/4; ++x){ // Just Central part of picture
@@ -78,7 +78,7 @@ static void colorfilter_fuckit(struct image_t *input, struct image_t *output, in
 static struct image_t *colorfilter_func(struct image_t *img)
 {
   // Filter
-    colorfilter_fuckit(img, img,
+    colorfilter(img, img,
                 color_lum_min, color_lum_max,
                 color_cb_min,  color_cb_max,
                 color_cr_min,  color_cr_max

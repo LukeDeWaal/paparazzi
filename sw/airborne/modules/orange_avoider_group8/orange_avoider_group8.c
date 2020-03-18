@@ -52,7 +52,7 @@ enum navigation_state_t {
 };
 
 // define settings
-float oa_color_count_frac = 0.18f;
+float oa_color_count_frac = 0.10f;
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -73,7 +73,7 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int32_t quality, int16_t __attribute__((unused)) extra)
 {
     color_count = quality;
-    VERBOSE_PRINT("FUCKING Color_count: %d \n", color_count);
+    //VERBOSE_PRINT("Color_count: %d \n", color_count);
 }
 
 /*
@@ -100,7 +100,7 @@ void orange_avoider_periodic(void)
     }
 
     // compute current color thresholds
-    int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w / 2 * front_camera.output_size.h / 2;
+    int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
     VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count, navigation_state);
 
