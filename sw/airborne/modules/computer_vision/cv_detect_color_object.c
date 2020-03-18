@@ -86,8 +86,9 @@ struct color_object_t {
   bool updated;
 };
 struct color_object_t global_filters[3];
-float oa_color_count_frac  = 0.10f;
-float orange_color_count_frac = 0.10f;
+
+float oa_color_count_frac  = 0.075f;        // SENSITIVITY TO GREEN; LOWER VALUES MAKE IT LESS CAREFUL
+float orange_color_count_frac = 0.175f;     // SENSITIVITY TO ORANGE; HIGHER VALUES MAKE IT LESS CAREFUL
 uint32_t left_green_count = 0;
 uint32_t right_green_count = 0;
 

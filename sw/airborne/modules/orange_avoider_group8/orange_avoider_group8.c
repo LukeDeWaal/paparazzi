@@ -150,9 +150,9 @@ void orange_avoider_periodic(void)
 
             break;
         case OBSTACLE_FOUND:
-            // stop
-            waypoint_move_here_2d(WP_GOAL);
-            waypoint_move_here_2d(WP_TRAJECTORY);
+//            // stop
+//            waypoint_move_here_2d(WP_GOAL);
+//            waypoint_move_here_2d(WP_TRAJECTORY);
 
             // randomly select new search direction
             chooseRandomIncrementAvoidance();
