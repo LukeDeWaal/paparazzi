@@ -31,6 +31,8 @@
 #include <sys/time.h>
 #include <state.h>
 
+
+
 /* The different type of images we currently support */
 enum image_type {
   IMAGE_YUV422,     ///< UYVY format (uint16 per pixel)

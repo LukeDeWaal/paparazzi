@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+
 // Module settings
 extern uint8_t cod_lum_min1;
 extern uint8_t cod_lum_max1;

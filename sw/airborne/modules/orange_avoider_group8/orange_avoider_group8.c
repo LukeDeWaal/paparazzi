@@ -52,7 +52,7 @@ enum navigation_state_t {
 };
 
 // define settings
-float oa_color_count_frac = 0.10f;
+//float oa_color_count_frac = 0.10f;
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
@@ -231,7 +231,7 @@ uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters)
 uint8_t chooseRandomIncrementAvoidance(void)
 {
     // Randomly choose CW or CCW avoiding direction
-    if (rand() % 2 == 0) {
+    if (left_green_count < right_green_count) {
         heading_increment = 5.f;
         VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
     } else {

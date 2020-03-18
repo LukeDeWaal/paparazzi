@@ -79,6 +79,9 @@ struct color_object_t {
   bool updated;
 };
 struct color_object_t global_filters[2];
+float oa_color_count_frac = 0.10f;
+uint32_t left_green_count = 0;
+uint32_t right_green_count = 0;
 
 // Function
 uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc, bool draw,
@@ -128,11 +131,19 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 
   // Filter and find centroid
   uint32_t central_green_count = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, 0, (uint16_t)(img->w/2), (uint16_t)(img->h/4), (uint16_t)(3*img->h/4));
+
+  pthread_mutex_lock(&mutex);
+  if((float)(central_green_count/(img->h * img->w)) < oa_color_count_frac){
+      printf("Have to turn: ");
+      left_green_count = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, 0, (uint16_t)(img->w/2), 0, (uint16_t)(img->h/4));
+      right_green_count = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, 0, (uint16_t)(img->w/2), (uint16_t)(3*img->h/4), (uint16_t)(img->h));
+  }
+
   VERBOSE_PRINT("Color count %d: %u, threshold %u, x_c %d, y_c %d\n", camera, object_count, count_threshold, x_c, y_c);
   VERBOSE_PRINT("centroid %d: (%d, %d) r: %4.2f a: %4.2f\n", camera, x_c, y_c,
         hypotf(x_c, y_c) / hypotf(img->w * 0.5, img->h * 0.5), RadOfDeg(atan2f(y_c, x_c)));
 
-  pthread_mutex_lock(&mutex);
+
   global_filters[filter-1].color_count = central_green_count;
   global_filters[filter-1].x_c = x_c;
   global_filters[filter-1].y_c = y_c;
@@ -221,8 +232,7 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
   uint32_t tot_y = 0;
   uint8_t *buffer = img->buf;
 
-
-  // Go through the bottom-centre pixels
+  // Go through pixels
   for (uint16_t y = y_min; y < y_max; y++) {
     for (uint16_t x = x_min; x < x_max; x++) {
       // Check if the color is inside the specified values
@@ -259,7 +269,7 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
     }
   }
 
-  printf("\nCount = %d, BOUNDS = x:(%d, %d), y:(%d, %d)\n", cnt, x_min, x_max, y_min, y_max);
+  //printf("\nCount = %d, BOUNDS = x:(%d, %d), y:(%d, %d)\n", cnt, x_min, x_max, y_min, y_max);
 
   if (cnt > 0) {
     *p_xc = (int32_t)roundf(tot_x / ((float) cnt) - img->w * 0.5f);
