@@ -24,6 +24,12 @@
     <define name="COLOR_OBJECT_DETECTOR_CB_MAX2" value="0" description="Filter 2 max blue chroma"/>
     <define name="COLOR_OBJECT_DETECTOR_CR_MIN2" value="0" description="Filter 2 min red chroma"/>
     <define name="COLOR_OBJECT_DETECTOR_CR_MAX2" value="0" description="Filter 2 max red chroma"/>
+      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN3" value="0" description="Filter 1 min luminance2"/>
+      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX3" value="0" description="Filter 2 max luminance2"/>
+      <define name="COLOR_OBJECT_DETECTOR_CB_MIN3" value="0" description="Filter 2 min blue chroma2"/>
+      <define name="COLOR_OBJECT_DETECTOR_CB_MAX3" value="0" description="Filter 2 max blue chroma2"/>
+      <define name="COLOR_OBJECT_DETECTOR_CR_MIN3" value="0" description="Filter 2 min red chroma2"/>
+      <define name="COLOR_OBJECT_DETECTOR_CR_MAX3" value="0" description="Filter 2 max red chroma2"/>
     <define name="COLOR_OBJECT_DETECTOR_DRAW2" value="FALSE|TRUE" description="Whether or not to draw on image"/>
   </doc>
 
@@ -43,6 +49,12 @@
          <dl_setting var="cod_cb_max2"   min="0" step="1" max="255" shortname="u_max2"/>
          <dl_setting var="cod_cr_min2"   min="0" step="1" max="255" shortname="v_min2"/>
          <dl_setting var="cod_cr_max2"   min="0" step="1" max="255" shortname="v_max2"/>
+          <dl_setting var="cod_lum_min3" min="0" step="1" max="255" shortname="y_min3"/>
+          <dl_setting var="cod_lum_max3" min="0" step="1" max="255" shortname="y_max3"/>
+          <dl_setting var="cod_cb_min3"   min="0" step="1" max="255" shortname="u_min3"/>
+          <dl_setting var="cod_cb_max3"   min="0" step="1" max="255" shortname="u_max3"/>
+          <dl_setting var="cod_cr_min3"   min="0" step="1" max="255" shortname="v_min3"/>
+          <dl_setting var="cod_cr_max3"   min="0" step="1" max="255" shortname="v_max3"/>
          <dl_setting var="cod_draw2"  min="0" step="1" max="1" values="False|True" shortname="draw 2" />
       </dl_settings>
     </dl_settings>

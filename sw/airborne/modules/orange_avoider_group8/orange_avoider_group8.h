@@ -17,6 +17,7 @@
 
 // settings
 extern float oa_color_count_frac;
+extern float orange_color_count_frac;
 extern uint32_t left_green_count;
 extern uint32_t right_green_count;
 

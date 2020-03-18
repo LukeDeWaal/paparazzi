@@ -68,6 +68,13 @@ uint8_t cod_cb_max2 = 0;
 uint8_t cod_cr_min2 = 0;
 uint8_t cod_cr_max2 = 0;
 
+uint8_t cod_lum_min3 = 0;
+uint8_t cod_lum_max3 = 0;
+uint8_t cod_cb_min3 = 0;
+uint8_t cod_cb_max3 = 0;
+uint8_t cod_cr_min3 = 0;
+uint8_t cod_cr_max3 = 0;
+
 bool cod_draw1 = false;
 bool cod_draw2 = false;
 
@@ -79,7 +86,8 @@ struct color_object_t {
   bool updated;
 };
 struct color_object_t global_filters[2];
-float oa_color_count_frac = 0.10f;
+float oa_color_count_frac  = 0.10f;
+float orange_color_count_frac = 0.10f;
 uint32_t left_green_count = 0;
 uint32_t right_green_count = 0;
 
@@ -99,10 +107,13 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
  */
 static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 {
-  uint8_t lum_min, lum_max;
-  uint8_t cb_min, cb_max;
-  uint8_t cr_min, cr_max;
-  bool draw;
+    uint8_t lum_min, lum_max;
+    uint8_t cb_min, cb_max;
+    uint8_t cr_min, cr_max;
+    uint8_t lum_min_2, lum_max_2;
+    uint8_t cb_min_2, cb_max_2;
+    uint8_t cr_min_2, cr_max_2;
+    bool draw;
 
   switch (filter){
     case 1:
@@ -112,6 +123,13 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
       cb_max = cod_cb_max1;
       cr_min = cod_cr_min1;
       cr_max = cod_cr_max1;
+      lum_min_2 = cod_lum_min3;
+      lum_max_2 = cod_lum_max3;
+      cb_min_2 = cod_cb_min3;
+      cb_max_2 = cod_cb_max3;
+      cr_min_2 = cod_cr_min3;
+      cr_max_2 = cod_cr_max3;
+
       draw = cod_draw1;
       break;
     case 2:
@@ -121,6 +139,13 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
       cb_max = cod_cb_max2;
       cr_min = cod_cr_min2;
       cr_max = cod_cr_max2;
+      lum_min_2 = cod_lum_min3;
+      lum_max_2 = cod_lum_max3;
+      cb_min_2 = cod_cb_min3;
+      cb_max_2 = cod_cb_max3;
+      cr_min_2 = cod_cr_min3;
+      cr_max_2 = cod_cr_max3;
+
       draw = cod_draw2;
       break;
     default:
@@ -130,12 +155,14 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
   int32_t x_c, y_c;
 
   // Filter and find centroid
-  uint32_t central_green_count = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, 0, (uint16_t)(img->w/2), (uint16_t)(img->h/4), (uint16_t)(3*img->h/4));
+  uint32_t central_green_count  = find_object_centroid(img, &x_c, &y_c, draw, lum_min,   lum_max,   cb_min,   cb_max,   cr_min,   cr_max,   0, (uint16_t)(img->w/2), (uint16_t)(img->h/4), (uint16_t)(3*img->h/4));
+  uint32_t central_orange_count = find_object_centroid(img, &x_c, &y_c, draw, lum_min_2, lum_max_2, cb_min_2, cb_max_2, cr_min_2, cr_max_2, 0, (uint16_t)(img->w),   (uint16_t)(img->h/8), (uint16_t)(7*img->h/8));
 
   pthread_mutex_lock(&mutex);
-  if((float)(central_green_count/(img->h * img->w)) < oa_color_count_frac){
-      printf("Have to turn: ");
-      left_green_count = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, 0, (uint16_t)(img->w/2), 0, (uint16_t)(img->h/4));
+  //
+  if((float)central_green_count/(float)(img->h * img->w) < oa_color_count_frac || (float)central_orange_count/(float)(img->h * img->w) > orange_color_count_frac){
+      printf("Orange: %f   --   Green: %f", (float)central_orange_count/(float)(img->h * img->w), (float)central_green_count/(float)(img->h * img->w));
+      left_green_count  = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, 0, (uint16_t)(img->w/2), 0, (uint16_t)(img->h/4));
       right_green_count = find_object_centroid(img, &x_c, &y_c, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, 0, (uint16_t)(img->w/2), (uint16_t)(3*img->h/4), (uint16_t)(img->h));
   }
 
@@ -177,6 +204,12 @@ void color_object_detector_init(void)
   cod_cb_max1 = COLOR_OBJECT_DETECTOR_CB_MAX1;
   cod_cr_min1 = COLOR_OBJECT_DETECTOR_CR_MIN1;
   cod_cr_max1 = COLOR_OBJECT_DETECTOR_CR_MAX1;
+  cod_lum_min3 = COLOR_OBJECT_DETECTOR_LUM_MIN3;
+  cod_lum_max3 = COLOR_OBJECT_DETECTOR_LUM_MAX3;
+  cod_cb_min3 = COLOR_OBJECT_DETECTOR_CB_MIN3;
+  cod_cb_max3 = COLOR_OBJECT_DETECTOR_CB_MAX3;
+  cod_cr_min3 = COLOR_OBJECT_DETECTOR_CR_MIN3;
+  cod_cr_max3 = COLOR_OBJECT_DETECTOR_CR_MAX3;
 #endif
 #ifdef COLOR_OBJECT_DETECTOR_DRAW1
   cod_draw1 = COLOR_OBJECT_DETECTOR_DRAW1;
@@ -193,6 +226,14 @@ void color_object_detector_init(void)
   cod_cb_max2 = COLOR_OBJECT_DETECTOR_CB_MAX2;
   cod_cr_min2 = COLOR_OBJECT_DETECTOR_CR_MIN2;
   cod_cr_max2 = COLOR_OBJECT_DETECTOR_CR_MAX2;
+//#endif
+//  #ifdef COLOR_OBJECT_DETECTOR_LUM_MIN3
+  cod_lum_min3 = COLOR_OBJECT_DETECTOR_LUM_MIN3;
+  cod_lum_max3 = COLOR_OBJECT_DETECTOR_LUM_MAX3;
+  cod_cb_min3 = COLOR_OBJECT_DETECTOR_CB_MIN3;
+  cod_cb_max3 = COLOR_OBJECT_DETECTOR_CB_MAX3;
+  cod_cr_min3 = COLOR_OBJECT_DETECTOR_CR_MIN3;
+  cod_cr_max3 = COLOR_OBJECT_DETECTOR_CR_MAX3;
 #endif
 #ifdef COLOR_OBJECT_DETECTOR_DRAW2
   cod_draw2 = COLOR_OBJECT_DETECTOR_DRAW2;
