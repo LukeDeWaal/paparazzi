@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
+#include <time.h>
 #include "pthread.h"
 
 #define PRINT(string,...) fprintf(stderr, "[object_detector->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
@@ -88,7 +89,7 @@ struct color_object_t {
 struct color_object_t global_filters[3];
 
 float oa_color_count_frac  = 0.075f;        // SENSITIVITY TO GREEN; LOWER VALUES MAKE IT LESS CAREFUL
-float orange_color_count_frac = 0.175f;     // SENSITIVITY TO ORANGE; HIGHER VALUES MAKE IT LESS CAREFUL
+float orange_color_count_frac = 0.125f;     // SENSITIVITY TO ORANGE; HIGHER VALUES MAKE IT LESS CAREFUL
 uint32_t left_green_count = 0;
 uint32_t right_green_count = 0;
 
@@ -108,6 +109,8 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
  */
 static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 {
+
+
     uint8_t lum_min, lum_max;
     uint8_t cb_min, cb_max;
     uint8_t cr_min, cr_max;
@@ -157,7 +160,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 
   // Filter and find centroid
   uint32_t central_green_count  = find_object_centroid(img, &x_c, &y_c, draw, lum_min,   lum_max,   cb_min,   cb_max,   cr_min,   cr_max,   0, (uint16_t)(img->w/2), (uint16_t)(img->h/4), (uint16_t)(3*img->h/4));
-  uint32_t central_orange_count = find_object_centroid(img, &x_c, &y_c, draw, lum_min_2, lum_max_2, cb_min_2, cb_max_2, cr_min_2, cr_max_2, 0, (uint16_t)(img->w),   (uint16_t)(img->h/8), (uint16_t)(7*img->h/8));
+  uint32_t central_orange_count = find_object_centroid(img, &x_c, &y_c, draw, lum_min_2, lum_max_2, cb_min_2, cb_max_2, cr_min_2, cr_max_2, 0, (uint16_t)(7*img->w/8),   (uint16_t)(img->h/8), (uint16_t)(7*img->h/8));
 
   pthread_mutex_lock(&mutex);
   //
@@ -180,6 +183,8 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
   global_filters[2].y_c = y_c;
   global_filters[2].updated = true;
   pthread_mutex_unlock(&mutex);
+
+
 
   return img;
 }
@@ -328,10 +333,12 @@ uint32_t find_object_centroid(struct image_t *img, int32_t* p_xc, int32_t* p_yc,
 
 void color_object_detector_periodic(void)
 {
-  static struct color_object_t local_filters[3];
-  pthread_mutex_lock(&mutex);
-  memcpy(local_filters, global_filters, 3*sizeof(struct color_object_t));
-  pthread_mutex_unlock(&mutex);
+    clock_t t0 = clock();
+
+    static struct color_object_t local_filters[3];
+    pthread_mutex_lock(&mutex);
+    memcpy(local_filters, global_filters, 3*sizeof(struct color_object_t));
+    pthread_mutex_unlock(&mutex);
 
     if(local_filters[0].updated){
     AbiSendMsgVISUAL_DETECTION(COLOR_OBJECT_DETECTION1_ID, local_filters[0].x_c, local_filters[0].y_c,
@@ -350,4 +357,8 @@ void color_object_detector_periodic(void)
     local_filters[2].updated = false;
 
     }
+
+    clock_t t1 = clock();
+
+    printf("Execution Time: %0.5f ms\n", 1000*(double)(t1 - t0)/CLOCKS_PER_SEC);
 }

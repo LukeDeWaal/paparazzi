@@ -61,7 +61,7 @@ int32_t orange_color_count = 0;               // orange color count from color f
 
 int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
 float heading_increment = 5.f;          // heading angle increment [deg]
-float maxDistance = 2.25;               // max waypoint displacement [m]
+float maxDistance = 1.25;//2.25;               // max waypoint displacement [m]
 
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
 
@@ -121,7 +121,7 @@ void orange_avoider_periodic(void)
 
     //VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", green_color_count, green_color_count, navigation_state);
 
-    printf("Green: %d, Orange: %d\n", green_color_count, orange_color_count);
+    //printf("Green: %d, Orange: %d\n", green_color_count, orange_color_count);
 
     // update our safe confidence using color threshold
     if(green_color_count > green_color_count_threshold && orange_color_count < orange_color_count_threshold){

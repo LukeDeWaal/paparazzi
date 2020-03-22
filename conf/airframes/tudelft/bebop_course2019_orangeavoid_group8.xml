@@ -10,26 +10,34 @@
       <define name="VIDEO_CAPTURE_PATH" value="/data/ftp/internal_000/images"/>
       <define name="FILE_LOGGER_PATH" value="/data/ftp/internal_000/log"/>
 
-      <!-- Detect orange -->
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN1" value="50"/>
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX1" value="200"/>
+      <!-- Detect Green -->
+<!--      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN1" value="50"/>-->
+<!--      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX1" value="200"/>-->
+<!--      <define name="COLOR_OBJECT_DETECTOR_CB_MIN1" value="0"/>-->
+<!--      <define name="COLOR_OBJECT_DETECTOR_CB_MAX1" value="120"/>-->
+<!--      <define name="COLOR_OBJECT_DETECTOR_CR_MIN1" value="0"/>-->
+<!--      <define name="COLOR_OBJECT_DETECTOR_CR_MAX1" value="135"/>-->
+      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN1" value="61"/>
+      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX1" value="221"/>
       <define name="COLOR_OBJECT_DETECTOR_CB_MIN1" value="0"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MAX1" value="120"/>
+      <define name="COLOR_OBJECT_DETECTOR_CB_MAX1" value="114"/>
       <define name="COLOR_OBJECT_DETECTOR_CR_MIN1" value="0"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MAX1" value="135"/>
+      <define name="COLOR_OBJECT_DETECTOR_CR_MAX1" value="125"/>
     </target>
     <target name="nps" board="pc">
       <module name="fdm" type="gazebo"/>
       <define name="VIDEO_CAPTURE_PATH" value="/tmp/paparazzi/images"/>
       <define name="FILE_LOGGER_PATH" value="/tmp/paparazzi/log"/>
       
-      <!-- Detect orange -->
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN1" value="50"/>
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX1" value="200"/>
+      <!-- Detect Green -->
+      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN1" value="61"/>
+      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX1" value="221"/>
       <define name="COLOR_OBJECT_DETECTOR_CB_MIN1" value="0"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MAX1" value="120"/>
+      <define name="COLOR_OBJECT_DETECTOR_CB_MAX1" value="114"/>
       <define name="COLOR_OBJECT_DETECTOR_CR_MIN1" value="0"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MAX1" value="135"/>
+      <define name="COLOR_OBJECT_DETECTOR_CR_MAX1" value="125"/>
+
+      <!-- Detect Orange -->
       <define name="COLOR_OBJECT_DETECTOR_LUM_MIN3" value="41"/>
       <define name="COLOR_OBJECT_DETECTOR_LUM_MAX3" value="183"/>
       <define name="COLOR_OBJECT_DETECTOR_CB_MIN3" value="53"/>
