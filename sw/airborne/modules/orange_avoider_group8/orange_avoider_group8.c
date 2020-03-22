@@ -42,7 +42,7 @@
 uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters);
 uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 uint8_t increase_nav_heading(float incrementDegrees);
-uint8_t chooseRandomIncrementAvoidance(void);
+uint8_t chooseIncrementAvoidance(void);
 
 enum navigation_state_t {
     SAFE,
@@ -63,6 +63,12 @@ int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that 
 float heading_increment = 5.f;          // heading angle increment [deg]
 float maxDistance = 1.25;//2.25;               // max waypoint displacement [m]
 
+//uint8_t first = 0;
+struct image_t prev_img;
+struct image_t next_img;
+
+uint8_t primo = 0;
+
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
 
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
@@ -71,8 +77,13 @@ const int16_t max_trajectory_confidence = 5; // number of consecutive negative o
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID2
 #define ORANGE_AVOIDER_VISUAL_DETECTION_ID2 ABI_BROADCAST
 #endif
+#ifndef BUFFER_ID
+#define BUFFER_ID ABI_BROADCAST
+#endif
 static abi_event green_color_detection_ev;
 static abi_event orange_color_detection_ev;
+static abi_event optic_flow_buffer_ev;
+
 static void green_color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
                                int16_t __attribute__((unused)) pixel_width, int16_t __attribute__((unused)) pixel_height,
@@ -91,6 +102,16 @@ static void orange_color_detection_cb(uint8_t __attribute__((unused)) sender_id,
     //VERBOSE_PRINT("Color_count: %d \n", green_color_count);
 }
 
+static void get_buffer_cb(uint8_t __attribute__((unused)) sender_id,
+                          struct image_t first_img, struct image_t second_img)
+{
+    prev_img = first_img;
+    next_img = second_img;
+    printf("%d DONE\n", prev_img.w);
+    //VERBOSE_PRINT("Color_count: %d \n", green_color_count);
+}
+
+
 /*
  * Initialisation function, setting the colour filter, random seed and heading_increment
  */
@@ -98,11 +119,12 @@ void orange_avoider_init(void)
 {
     // Initialise random values
     srand(time(NULL));
-    chooseRandomIncrementAvoidance();
+    chooseIncrementAvoidance();
 
     // bind our colorfilter callbacks to receive the color filter outputs
     AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &green_color_detection_ev, green_color_detection_cb);
     AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID2, &orange_color_detection_ev, orange_color_detection_cb);
+    AbiBindMsgBUFFER(BUFFER_ID, &optic_flow_buffer_ev, get_buffer_cb);
 }
 
 /*
@@ -150,12 +172,9 @@ void orange_avoider_periodic(void)
 
             break;
         case OBSTACLE_FOUND:
-//            // stop
-//            waypoint_move_here_2d(WP_GOAL);
-//            waypoint_move_here_2d(WP_TRAJECTORY);
 
-            // randomly select new search direction
-            chooseRandomIncrementAvoidance();
+            // select new search direction depending on amount of green pixels in bottom corners
+            chooseIncrementAvoidance();
 
             navigation_state = SEARCH_FOR_SAFE_HEADING;
 
@@ -170,20 +189,9 @@ void orange_avoider_periodic(void)
             break;
         case OUT_OF_BOUNDS:
             navigation_state = SEARCH_FOR_SAFE_HEADING;
-//            increase_nav_heading(heading_increment);
-//            moveWaypointForward(WP_TRAJECTORY, 1.5f);
-//
-//            if (InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
-//                // add offset to head back into arena
-//                increase_nav_heading(heading_increment);
-//
-//                // reset safe counter
-//                obstacle_free_confidence = 0;
-//
-//                // ensure direction is safe before continuing
-//                navigation_state = SEARCH_FOR_SAFE_HEADING;
-//            }
-//            break;
+
+            break;
+
         default:
             break;
     }
@@ -248,14 +256,16 @@ uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters)
 /*
  * Sets the variable 'heading_increment' randomly positive/negative
  */
-uint8_t chooseRandomIncrementAvoidance(void)
+uint8_t chooseIncrementAvoidance(void)
 {
-    // Randomly choose CW or CCW avoiding direction
+    // choose CW or CCW avoiding direction
     if (left_green_count < right_green_count) {
         heading_increment = 5.f;
+        printf("%d < %d:\tTurning Right\n", left_green_count, right_green_count);
         //VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
     } else {
         heading_increment = -5.f;
+        printf("%d > %d:\tTurning Left\n", left_green_count, right_green_count);
         //VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
     }
     return false;

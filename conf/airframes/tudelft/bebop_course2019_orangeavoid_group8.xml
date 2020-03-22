@@ -81,6 +81,7 @@
     </module>
     <module name="orange_avoider_group8">
       <define name="ORANGE_AVOIDER_VISUAL_DETECTION_ID" value="COLOR_OBJECT_DETECTION1_ID"/>
+      <define name="BUFFER_ID" value="BUFFER_ID_T"/>
     </module>
     <module name="video_rtp_stream">
       <define name="VIEWVIDEO_CAMERA" value="front_camera"/>

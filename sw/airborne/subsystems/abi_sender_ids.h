@@ -463,4 +463,8 @@
 #define JOYSTICK_ID 1
 #endif
 
+#ifndef BUFFER_ID_T
+#define BUFFER_ID_T 1
+#endif
+
 #endif /* ABI_SENDER_IDS_H */
