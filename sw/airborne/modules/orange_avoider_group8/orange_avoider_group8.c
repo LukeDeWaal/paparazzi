@@ -137,22 +137,18 @@ void orange_avoider_periodic(void)
         obstacle_free_confidence -= 2;  // be more cautious with positive obstacle detections
     }
 
-
+    // Checks the pixels on the central part, left and right of the image, adds a CCW or CW rotation if for more than 3 frames, left or right have more open areas
     int32_t left_score  = left_green_count  - left_orange_count;
     int32_t right_score = right_green_count - right_orange_count;
     int32_t central_score = 0.3*(green_color_count - orange_color_count);
-    printf("Left score %" PRId32 ", Right score %" PRId32 "Central score %" PRId32 "\n", left_score, right_score, central_score);
+    // printf("Left score %" PRId32 ", Right score %" PRId32 "Central score %" PRId32 "\n", left_score, right_score, central_score);
     if (left_score > central_score) {
         heading_increment_flight = -3.f;
         left_free_confidence++;
-        //right_free_confidence-=2;
-        //VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
     }
     if (right_score > central_score) {
         heading_increment_flight = 3.f;
         right_free_confidence++;
-        //left_free_confidence-=2;
-        //VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
     }
     if (left_score < central_score) {
         left_free_confidence = 0;
@@ -174,11 +170,12 @@ void orange_avoider_periodic(void)
             printf("right free confidence %d", right_free_confidence);
             printf("left free confidence %d",left_free_confidence);
 
-            // Move waypoint forward
+            // induces a CCW or CW rotation if, for more than 3 frames, left or right have more open areas
             if (right_free_confidence > 3 || left_free_confidence > 3){
                 increase_nav_heading(heading_increment_flight);
             }
 
+            // Move waypoint forward
             moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
             if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
                 navigation_state = OUT_OF_BOUNDS;
