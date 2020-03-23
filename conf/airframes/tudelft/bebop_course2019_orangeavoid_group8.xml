@@ -38,12 +38,12 @@
       <define name="COLOR_OBJECT_DETECTOR_CR_MAX1" value="125"/>
 
       <!-- Detect Orange -->
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN3" value="41"/>
-      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX3" value="183"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MIN3" value="53"/>
-      <define name="COLOR_OBJECT_DETECTOR_CB_MAX3" value="121"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MIN3" value="134"/>
-      <define name="COLOR_OBJECT_DETECTOR_CR_MAX3" value="249"/>
+      <define name="COLOR_OBJECT_DETECTOR_LUM_MIN3" value="48"/>
+      <define name="COLOR_OBJECT_DETECTOR_LUM_MAX3" value="190"/>
+      <define name="COLOR_OBJECT_DETECTOR_CB_MIN3" value="60"/>
+      <define name="COLOR_OBJECT_DETECTOR_CB_MAX3" value="122"/>
+      <define name="COLOR_OBJECT_DETECTOR_CR_MIN3" value="141"/>
+      <define name="COLOR_OBJECT_DETECTOR_CR_MAX3" value="242"/>
     </target>
     
     <define name="ARRIVED_AT_WAYPOINT" value="0.5"/><!-- Detect arrival at waypoint when within 0.5m -->
