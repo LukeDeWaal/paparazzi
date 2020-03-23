@@ -170,14 +170,14 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 
   pthread_mutex_lock(&mutex);
   //
-  if((float)central_green_count/(float)(img->h * img->w) < oa_color_count_frac || (float)central_orange_count/(float)(img->h * img->w) > orange_color_count_frac){
+  //if((float)central_green_count/(float)(img->h * img->w) < oa_color_count_frac || (float)central_orange_count/(float)(img->h * img->w) > orange_color_count_frac){
       //printf("Orange: %f   --   Green: %f\n", (float)central_orange_count/(float)(img->h * img->w), (float)central_green_count/(float)(img->h * img->w));
       left_green_count  = find_object_centroid(img, &x_c_g_L, &y_c_g_L, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, 0, (uint16_t)(img->w/2), 0, (uint16_t)(img->h/4));
       left_orange_count = find_object_centroid(img, &x_c_o_L, &y_c_o_L, draw, lum_min_2, lum_max_2, cb_min_2, cb_max_2, cr_min_2, cr_max_2, 0, (uint16_t)(img->w/2), 0, (uint16_t)(img->h/4));
 
       right_green_count = find_object_centroid(img, &x_c_g_R, &y_c_g_R, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, 0, (uint16_t)(img->w/2), (uint16_t)(3*img->h/4), (uint16_t)(img->h));
       right_orange_count = find_object_centroid(img, &x_c_o_R, &y_c_o_R, draw, lum_min_2, lum_max_2, cb_min_2, cb_max_2, cr_min_2, cr_max_2, 0, (uint16_t)(img->w/2), (uint16_t)(3*img->h/4), (uint16_t)(img->h));
-  }
+  //}
 
   global_filters[filter-1].color_count = central_green_count;
   global_filters[filter-1].x_c = x_c_g;
