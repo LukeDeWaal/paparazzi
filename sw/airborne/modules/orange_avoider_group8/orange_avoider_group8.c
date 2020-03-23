@@ -26,6 +26,7 @@
 
 #include <time.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #define NAV_C // needed to get the nav funcitons like Inside...
 #include "generated/flight_plan.h"
@@ -52,12 +53,11 @@ enum navigation_state_t {
 };
 
 // define settings
-//float oa_color_count_frac = 0.10f;
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
-int32_t green_color_count = 0;               // green color count from color filter for obstacle detection
-int32_t orange_color_count = 0;               // orange color count from color filter for obstacle detection
+uint32_t green_color_count = 0;               // green color count from color filter for obstacle detection
+uint32_t orange_color_count = 0;               // orange color count from color filter for obstacle detection
 
 int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
 float heading_increment = 5.f;          // heading angle increment [deg]
@@ -67,8 +67,6 @@ float maxDistance = 1.25;//2.25;               // max waypoint displacement [m]
 struct image_t prev_img;
 struct image_t next_img;
 
-uint8_t primo = 0;
-
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
 
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
@@ -77,12 +75,9 @@ const int16_t max_trajectory_confidence = 5; // number of consecutive negative o
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID2
 #define ORANGE_AVOIDER_VISUAL_DETECTION_ID2 ABI_BROADCAST
 #endif
-#ifndef BUFFER_ID
-#define BUFFER_ID ABI_BROADCAST
-#endif
+
 static abi_event green_color_detection_ev;
 static abi_event orange_color_detection_ev;
-static abi_event optic_flow_buffer_ev;
 
 static void green_color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
@@ -90,7 +85,7 @@ static void green_color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int32_t quality, int16_t __attribute__((unused)) extra)
 {
     green_color_count = quality;
-   //VERBOSE_PRINT("Color_count: %d \n", green_color_count);
+
 }
 
 static void orange_color_detection_cb(uint8_t __attribute__((unused)) sender_id,
@@ -99,16 +94,7 @@ static void orange_color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                      int32_t quality, int16_t __attribute__((unused)) extra)
 {
     orange_color_count = quality;
-    //VERBOSE_PRINT("Color_count: %d \n", green_color_count);
-}
 
-static void get_buffer_cb(uint8_t __attribute__((unused)) sender_id,
-                          struct image_t first_img, struct image_t second_img)
-{
-    prev_img = first_img;
-    next_img = second_img;
-    printf("%d DONE\n", prev_img.w);
-    //VERBOSE_PRINT("Color_count: %d \n", green_color_count);
 }
 
 
@@ -124,7 +110,7 @@ void orange_avoider_init(void)
     // bind our colorfilter callbacks to receive the color filter outputs
     AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &green_color_detection_ev, green_color_detection_cb);
     AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID2, &orange_color_detection_ev, orange_color_detection_cb);
-    AbiBindMsgBUFFER(BUFFER_ID, &optic_flow_buffer_ev, get_buffer_cb);
+
 }
 
 /*
@@ -138,14 +124,10 @@ void orange_avoider_periodic(void)
     }
 
     // compute current color thresholds
-    int32_t green_color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
+    int32_t green_color_count_threshold  = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
     int32_t orange_color_count_threshold = orange_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-    //VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", green_color_count, green_color_count, navigation_state);
-
-    //printf("Green: %d, Orange: %d\n", green_color_count, orange_color_count);
-
-    // update our safe confidence using color threshold
+    // update our safe confidence using color thresholds
     if(green_color_count > green_color_count_threshold && orange_color_count < orange_color_count_threshold){
         obstacle_free_confidence++;
     } else {
@@ -160,27 +142,34 @@ void orange_avoider_periodic(void)
 
     switch (navigation_state){
         case SAFE:
+            printf("SAFE: %d\n", obstacle_free_confidence);
             // Move waypoint forward
             moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
             if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
                 navigation_state = OUT_OF_BOUNDS;
-            } else if (obstacle_free_confidence == 0){
+            }
+            else if (obstacle_free_confidence == 0){
                 navigation_state = OBSTACLE_FOUND;
-            } else {
+            }
+            else {
                 moveWaypointForward(WP_GOAL, moveDistance);
             }
 
             break;
         case OBSTACLE_FOUND:
-
-            // select new search direction depending on amount of green pixels in bottom corners
+            printf("OBSTACLE FOUND\n");
+            // select new search direction depending on amount of green pixels in bottom corners and orange in corners
             chooseIncrementAvoidance();
 
             navigation_state = SEARCH_FOR_SAFE_HEADING;
 
             break;
         case SEARCH_FOR_SAFE_HEADING:
+
+            printf("SEARCHING FOR SAFE HEADING\n");
             increase_nav_heading(heading_increment);
+
+            // TODO: MAKE DRONE FLY FORWARD WHILE TURNING
 
             // make sure we have a couple of good readings before declaring the way safe
             if (obstacle_free_confidence >= 2){
@@ -188,11 +177,13 @@ void orange_avoider_periodic(void)
             }
             break;
         case OUT_OF_BOUNDS:
+            printf("OUT OF BOUNDS\n");
             navigation_state = SEARCH_FOR_SAFE_HEADING;
 
             break;
 
         default:
+            printf("DEFAULT\n");
             break;
     }
     return;
@@ -259,13 +250,16 @@ uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters)
 uint8_t chooseIncrementAvoidance(void)
 {
     // choose CW or CCW avoiding direction
-    if (left_green_count < right_green_count) {
+    int32_t left_score  = left_green_count  - left_orange_count;
+    int32_t right_score = right_green_count - right_orange_count;
+    printf("Left: %" PRIu32 " - %" PRIu32 " = %" PRId32 " \nRight: %" PRIu32 " - %" PRIu32 " = %" PRId32 "\n", left_green_count, left_orange_count, left_score, right_green_count, right_orange_count, right_score);
+    if (left_score < right_score) {
         heading_increment = 5.f;
-        printf("%d < %d:\tTurning Right\n", left_green_count, right_green_count);
+        printf("%" PRId32 " < %" PRId32 ":\tTurning Right\n", left_score, right_score);
         //VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
     } else {
         heading_increment = -5.f;
-        printf("%d > %d:\tTurning Left\n", left_green_count, right_green_count);
+        printf("%" PRId32 " > %" PRId32 ":\tTurning Left\n", left_score, right_score);
         //VERBOSE_PRINT("Set avoidance increment to: %f\n", heading_increment);
     }
     return false;

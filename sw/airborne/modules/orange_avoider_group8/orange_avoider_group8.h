@@ -15,11 +15,14 @@
 
 #include <stdint.h>
 
+
 // settings
 extern float oa_color_count_frac;
 extern float orange_color_count_frac;
 extern uint32_t left_green_count;
 extern uint32_t right_green_count;
+extern uint32_t left_orange_count;
+extern uint32_t right_orange_count;
 
 // functions
 extern void orange_avoider_init(void);
