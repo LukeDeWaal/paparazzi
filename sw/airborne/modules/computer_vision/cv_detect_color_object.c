@@ -91,8 +91,8 @@ struct color_object_t global_filters[3];
 uint8_t first = 0;
 
 
-float oa_color_count_frac  = 0.095f;        // SENSITIVITY TO GREEN; LOWER VALUES MAKE IT LESS CAREFUL
-float orange_color_count_frac = 0.125f;     // SENSITIVITY TO ORANGE; HIGHER VALUES MAKE IT LESS CAREFUL
+float oa_color_count_frac  = 0.03f;        // SENSITIVITY TO GREEN; LOWER VALUES MAKE IT LESS CAREFUL
+float orange_color_count_frac = 0.15f;     // SENSITIVITY TO ORANGE; HIGHER VALUES MAKE IT LESS CAREFUL
 
 uint32_t left_green_count = 0;
 uint32_t right_green_count = 0;
