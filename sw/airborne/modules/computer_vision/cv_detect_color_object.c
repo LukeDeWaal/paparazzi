@@ -91,9 +91,6 @@ struct color_object_t global_filters[3];
 uint8_t first = 0;
 
 
-float oa_color_count_frac  = 0.03f;        // SENSITIVITY TO GREEN; LOWER VALUES MAKE IT LESS CAREFUL
-float orange_color_count_frac = 0.15f;     // SENSITIVITY TO ORANGE; HIGHER VALUES MAKE IT LESS CAREFUL
-
 uint32_t left_green_count = 0;
 uint32_t right_green_count = 0;
 uint32_t left_orange_count = 0;
@@ -170,7 +167,7 @@ static struct image_t *object_detector(struct image_t *img, uint8_t filter)
 
   pthread_mutex_lock(&mutex);
   //
-  //if((float)central_green_count/(float)(img->h * img->w) < oa_color_count_frac || (float)central_orange_count/(float)(img->h * img->w) > orange_color_count_frac){
+  //if((float)central_green_count/(float)(img->h * img->w) < green_color_count_frac || (float)central_orange_count/(float)(img->h * img->w) > orange_color_count_frac){
       //printf("Orange: %f   --   Green: %f\n", (float)central_orange_count/(float)(img->h * img->w), (float)central_green_count/(float)(img->h * img->w));
       left_green_count  = find_object_centroid(img, &x_c_g_L, &y_c_g_L, draw, lum_min, lum_max, cb_min, cb_max, cr_min, cr_max, 0, (uint16_t)(img->w/2), 0, (uint16_t)(img->h/4));
       left_orange_count = find_object_centroid(img, &x_c_o_L, &y_c_o_L, draw, lum_min_2, lum_max_2, cb_min_2, cb_max_2, cr_min_2, cr_max_2, 0, (uint16_t)(img->w/2), 0, (uint16_t)(img->h/4));

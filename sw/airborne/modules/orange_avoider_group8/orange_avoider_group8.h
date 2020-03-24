@@ -17,8 +17,16 @@
 
 
 // settings
-extern float oa_color_count_frac;
+extern float green_color_count_frac;
 extern float orange_color_count_frac;
+
+//extern int16_t obstacle_free_confidence;
+//extern int16_t left_free_confidence;
+//extern int16_t right_free_confidence;
+extern float central_coefficient;
+extern int16_t n_trajectory_confidence;
+extern int16_t n_turning_confidence;
+
 extern uint32_t left_green_count;
 extern uint32_t right_green_count;
 extern uint32_t left_orange_count;

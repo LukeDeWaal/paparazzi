@@ -1,35 +1,44 @@
 <!DOCTYPE module SYSTEM "module.dtd">
 
 <module name="orange_avoider_group8">
-  <doc>
-    <description>
-This module is an example module for the course AE4317 Autonomous Flight of Micro Air Vehicles at the TU Delft.
-This module is used in combination with a color filter (cv_detect_color_object) and the navigation mode of the autopilot.
-The avoidance strategy is to simply count the total number of orange pixels. When above a certain percentage threshold,
-(given by color_count_frac) we assume that there is an obstacle and we turn.
+    <doc>
+        <description>
+            This module is an example module for the course AE4317 Autonomous Flight of Micro Air Vehicles at the TU
+            Delft.
+            This module is used in combination with a color filter (cv_detect_color_object) and the navigation mode of
+            the autopilot.
+            The avoidance strategy is to simply count the total number of orange pixels. When above a certain percentage
+            threshold,
+            (given by color_count_frac) we assume that there is an obstacle and we turn.
 
-The color filter settings are set using the cv_detect_color_object. This module can run multiple filters simultaneously
-so you have to define which filter to use with the ORANGE_AVOIDER_VISUAL_DETECTION_ID setting.
-    </description>
-    <define name="ORANGE_AVOIDER_VISUAL_DETECTION_ID" value="ABI_BROADCAST" description="which VISUAL_DETECTION message to recieve for green."/>
-    <define name="ORANGE_AVOIDER_VISUAL_DETECTION_ID2" value="ABI_BROADCAST" description="which VISUAL_DETECTION message to recieve for orange pole detection."/>
-  </doc>
+            The color filter settings are set using the cv_detect_color_object. This module can run multiple filters
+            simultaneously
+            so you have to define which filter to use with the ORANGE_AVOIDER_VISUAL_DETECTION_ID setting.
+        </description>
+        <define name="ORANGE_AVOIDER_VISUAL_DETECTION_ID" value="ABI_BROADCAST"
+                description="which VISUAL_DETECTION message to recieve for green."/>
+        <define name="ORANGE_AVOIDER_VISUAL_DETECTION_ID2" value="ABI_BROADCAST"
+                description="which VISUAL_DETECTION message to recieve for orange pole detection."/>
+    </doc>
     <settings>
-    <dl_settings>
-      <dl_settings name="OrangeAvoider">
-         <dl_setting var="oa_color_count_frac" min="0" step="0.01" max="0.5"/>
-         <dl_setting var="orange_color_count_frac" min="0" step="0.01" max="0.5"/>
-      </dl_settings>
-    </dl_settings>
-  </settings>
-  
-  <depends>cv_detect_color_object</depends>
-  <header>
-    <file name="orange_avoider_group8.h"/>
-  </header>
-  <init fun="orange_avoider_init()"/>
-  <periodic fun="orange_avoider_periodic()" freq="4"/>
-  <makefile target="ap|nps">
-    <file name="orange_avoider_group8.c"/>
-  </makefile>
+        <dl_settings>
+            <dl_settings name="OrangeAvoider">
+                <dl_setting var="green_color_count_frac" min="0" step="0.01" max="0.5"/>
+                <dl_setting var="orange_color_count_frac" min="0" step="0.01" max="0.5"/>
+                <dl_setting var="central_coefficient" min="0" step="0.05" max="1.0"/>
+                <dl_setting var="n_trajectory_confidence" min="1" step="1" max="10"/>
+                <dl_setting var="n_turning_confidence" min="1" step="1" max="10"/>
+            </dl_settings>
+        </dl_settings>
+    </settings>
+
+    <depends>cv_detect_color_object</depends>
+    <header>
+        <file name="orange_avoider_group8.h"/>
+    </header>
+    <init fun="orange_avoider_init()"/>
+    <periodic fun="orange_avoider_periodic()" freq="4"/>
+    <makefile target="ap|nps">
+        <file name="orange_avoider_group8.c"/>
+    </makefile>
 </module>

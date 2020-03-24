@@ -66,11 +66,19 @@ float heading_increment = 5.f;          // heading angle increment [deg]
 float heading_increment_flight = 5.f;          // heading angle flight increment [deg]
 float maxDistance = 1.25;//2.25;               // max waypoint displacement [m]
 
+float central_coefficient = 0.3;
+
+float green_color_count_frac  = 0.03f;        // SENSITIVITY TO GREEN; LOWER VALUES MAKE IT LESS CAREFUL
+float orange_color_count_frac = 0.15f;     // SENSITIVITY TO ORANGE; HIGHER VALUES MAKE IT LESS CAREFUL
+
 //uint8_t first = 0;
 struct image_t prev_img;
 struct image_t next_img;
 
-const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
+int16_t max_trajectory_confidence = 5; // max number of consecutive negative object detections to be sure we are obstacle free
+
+int16_t n_trajectory_confidence = 2; // Number of readings before switching to SAFE
+int16_t n_turning_confidence = 3;    // Induce turn after this many frames of confidence
 
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
 #define ORANGE_AVOIDER_VISUAL_DETECTION_ID ABI_BROADCAST
@@ -127,7 +135,7 @@ void orange_avoider_periodic(void)
     }
 
     // compute current color thresholds
-    int32_t green_color_count_threshold  = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
+    int32_t green_color_count_threshold  = green_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
     int32_t orange_color_count_threshold = orange_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
     // update our safe confidence using color thresholds
@@ -140,7 +148,7 @@ void orange_avoider_periodic(void)
     // Checks the pixels on the central part, left and right of the image, adds a CCW or CW rotation if for more than 3 frames, left or right have more open areas
     int32_t left_score  = left_green_count  - left_orange_count;
     int32_t right_score = right_green_count - right_orange_count;
-    int32_t central_score = 0.3*(green_color_count - orange_color_count);
+    int32_t central_score = central_coefficient*(green_color_count - orange_color_count);
 
     // TODO: Make sliders for confidences; make slider for 0.3,
 
@@ -169,12 +177,12 @@ void orange_avoider_periodic(void)
 
     switch (navigation_state){
         case SAFE:
-            printf("SAFE: %d\n", obstacle_free_confidence);
-            printf("right free confidence %d", right_free_confidence);
-            printf("left free confidence %d",left_free_confidence);
+            printf("SAFE: %d - %d - %d\n", left_free_confidence, obstacle_free_confidence, right_free_confidence);
+//            printf("right free confidence %d", right_free_confidence);
+//            printf("left free confidence %d",left_free_confidence);
 
             // induces a CCW or CW rotation if, for more than 3 frames, left or right have more open areas
-            if (right_free_confidence > 3 || left_free_confidence > 3){
+            if (right_free_confidence > n_turning_confidence || left_free_confidence > n_turning_confidence){
                 increase_nav_heading(heading_increment_flight);
             }
 
@@ -207,7 +215,7 @@ void orange_avoider_periodic(void)
             // TODO: MAKE DRONE FLY FORWARD WHILE TURNING
 
             // make sure we have a couple of good readings before declaring the way safe
-            if (obstacle_free_confidence >= 2){
+            if (obstacle_free_confidence >= n_trajectory_confidence){
                 navigation_state = SAFE;
             }
             break;
