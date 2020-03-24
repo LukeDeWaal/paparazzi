@@ -141,6 +141,9 @@ void orange_avoider_periodic(void)
     int32_t left_score  = left_green_count  - left_orange_count;
     int32_t right_score = right_green_count - right_orange_count;
     int32_t central_score = 0.3*(green_color_count - orange_color_count);
+
+    // TODO: Make sliders for confidences; make slider for 0.3,
+
     // printf("Left score %" PRId32 ", Right score %" PRId32 "Central score %" PRId32 "\n", left_score, right_score, central_score);
     if (left_score > central_score) {
         heading_increment_flight = -3.f;
