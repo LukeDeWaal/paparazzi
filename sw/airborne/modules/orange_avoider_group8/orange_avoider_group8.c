@@ -150,9 +150,6 @@ void orange_avoider_periodic(void)
     int32_t right_score = right_green_count - right_orange_count;
     int32_t central_score = central_coefficient*(green_color_count - orange_color_count);
 
-    // TODO: Make sliders for confidences; make slider for 0.3,
-
-    // printf("Left score %" PRId32 ", Right score %" PRId32 "Central score %" PRId32 "\n", left_score, right_score, central_score);
     if (left_score > central_score) {
         heading_increment_flight = -3.f;
         left_free_confidence++;
@@ -178,8 +175,6 @@ void orange_avoider_periodic(void)
     switch (navigation_state){
         case SAFE:
             printf("SAFE: %d - %d - %d\n", left_free_confidence, obstacle_free_confidence, right_free_confidence);
-//            printf("right free confidence %d", right_free_confidence);
-//            printf("left free confidence %d",left_free_confidence);
 
             // induces a CCW or CW rotation if, for more than 3 frames, left or right have more open areas
             if (right_free_confidence > n_turning_confidence || left_free_confidence > n_turning_confidence){
@@ -211,8 +206,6 @@ void orange_avoider_periodic(void)
 
             printf("SEARCHING FOR SAFE HEADING\n");
             increase_nav_heading(heading_increment);
-
-            // TODO: MAKE DRONE FLY FORWARD WHILE TURNING
 
             // make sure we have a couple of good readings before declaring the way safe
             if (obstacle_free_confidence >= n_trajectory_confidence){
