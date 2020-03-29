@@ -56,29 +56,25 @@ enum navigation_state_t {
 
 // define and initialise global variables
 enum navigation_state_t navigation_state = SEARCH_FOR_SAFE_HEADING;
-uint32_t green_color_count = 0;               // green color count from color filter for obstacle detection
-uint32_t orange_color_count = 0;               // orange color count from color filter for obstacle detection
+uint32_t green_color_count = 0;                 // green color count from color filter for obstacle detection
+uint32_t orange_color_count = 0;                // orange color count from color filter for obstacle detection
 
-int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
+int16_t obstacle_free_confidence = 0;           // a measure of how certain we are that the way ahead is safe.
 int16_t left_free_confidence = 0;
 int16_t right_free_confidence = 0;
-float heading_increment = 5.f;          // heading angle increment [deg]
-float heading_increment_flight = 5.f;          // heading angle flight increment [deg]
-float maxDistance = 1.25;//2.25;               // max waypoint displacement [m]
+float heading_increment = 5.f;                  // heading angle increment [deg]
+float heading_increment_flight = 5.f;           // heading angle flight increment [deg]
+float maxDistance = 1.25;//2.25;                // max waypoint displacement [m]
 
-float central_coefficient = 0.3;
+float central_coefficient = 0.35;               // Weight given to the central part of the image
 
-float green_color_count_frac  = 0.03f;        // SENSITIVITY TO GREEN; LOWER VALUES MAKE IT LESS CAREFUL
-float orange_color_count_frac = 0.15f;     // SENSITIVITY TO ORANGE; HIGHER VALUES MAKE IT LESS CAREFUL
+float green_color_count_frac  = 0.03f;          // SENSITIVITY TO GREEN; LOWER VALUES MAKE IT LESS CAREFUL
+float orange_color_count_frac = 0.15f;          // SENSITIVITY TO ORANGE; HIGHER VALUES MAKE IT LESS CAREFUL
 
-//uint8_t first = 0;
-struct image_t prev_img;
-struct image_t next_img;
+int16_t max_trajectory_confidence = 5;          // max number of consecutive negative object detections to be sure we are obstacle free
 
-int16_t max_trajectory_confidence = 5; // max number of consecutive negative object detections to be sure we are obstacle free
-
-int16_t n_trajectory_confidence = 2; // Number of readings before switching to SAFE
-int16_t n_turning_confidence = 3;    // Induce turn after this many frames of confidence
+int16_t n_trajectory_confidence = 2;            // Number of readings before switching to SAFE
+int16_t n_turning_confidence = 3;               // Induce turn after this many frames of confidence
 
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
 #define ORANGE_AVOIDER_VISUAL_DETECTION_ID ABI_BROADCAST
@@ -87,8 +83,8 @@ int16_t n_turning_confidence = 3;    // Induce turn after this many frames of co
 #define ORANGE_AVOIDER_VISUAL_DETECTION_ID2 ABI_BROADCAST
 #endif
 
-static abi_event green_color_detection_ev;
-static abi_event orange_color_detection_ev;
+static abi_event green_color_detection_ev;      // Event for green colour filter
+static abi_event orange_color_detection_ev;     // Event for orange colour filter
 
 static void green_color_detection_cb(uint8_t __attribute__((unused)) sender_id,
                                int16_t __attribute__((unused)) pixel_x, int16_t __attribute__((unused)) pixel_y,
@@ -129,6 +125,9 @@ void orange_avoider_init(void)
  */
 void orange_avoider_periodic(void)
 {
+
+    clock_t t0 = clock();
+
     // only evaluate our state machine if we are flying
     if(!autopilot_in_flight()){
         return;
@@ -222,6 +221,11 @@ void orange_avoider_periodic(void)
             printf("DEFAULT\n");
             break;
     }
+
+    clock_t t1 = clock();
+
+    printf("Execution Time: %0.5f ms\n", 1000*(float)(t1 - t0)/CLOCKS_PER_SEC);
+
     return;
 }
 
@@ -252,9 +256,7 @@ static uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeter
     // Now determine where to place the waypoint you want to go to
     new_coor->x = stateGetPositionEnu_i()->x + POS_BFP_OF_REAL(sinf(heading) * (distanceMeters));
     new_coor->y = stateGetPositionEnu_i()->y + POS_BFP_OF_REAL(cosf(heading) * (distanceMeters));
-    //VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,
-    //              POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
-    //              stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
+
     return false;
 }
 
@@ -285,7 +287,10 @@ uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters)
  */
 uint8_t chooseIncrementAvoidance(void)
 {
-    // choose CW or CCW avoiding direction
+    // choose CW or CCW avoiding direction by calculating the amount of free green pixels.
+    // When there's more orange than green, it will be negative.
+    // When there's more green than orange, it will be positive.
+    // The direction with the least negative (or most positive) score will be chosen to turn towards
     int32_t left_score  = left_green_count  - left_orange_count;
     int32_t right_score = right_green_count - right_orange_count;
     printf("Left: %" PRIu32 " - %" PRIu32 " = %" PRId32 " \nRight: %" PRIu32 " - %" PRIu32 " = %" PRId32 "\n", left_green_count, left_orange_count, left_score, right_green_count, right_orange_count, right_score);
